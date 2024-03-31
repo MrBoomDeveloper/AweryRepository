@@ -82,12 +82,12 @@ function aweryReadMediaComments(request, callback) {
             // First page id = 1, but Awery starts from 0, so we increment this value by 1
             request.page++;
     
-            var url = DANTOTSU_ENDPOINT + "/comments/" + id + "/" + query.page + "/?";
+            var url = DANTOTSU_ENDPOINT + "/comments/" + id + "/" + request.page + "/?";
     
             const args = [];
     
-            if(request.episode != null) args.push(["tag", query.episode.number]);
-            if(request.sort != null) args.push(["sort", query.sort.id]);
+            if(request.episode != null) args.push(["tag", request.episode.number]);
+            if(request.sort != null) args.push(["sort", request.sort.id]);
     
             for(var i = 0; i < args.length; i++) {
                 var arg = args[i];
@@ -98,10 +98,12 @@ function aweryReadMediaComments(request, callback) {
                 url: url,
                 
                 headers: {
-                    "app_auth": DANTOTSU_SECRET,
-                    "Authorization": result.authCode
+                    "appauth": DANTOTSU_SECRET,
+                    "Authorization": result.authToken
                 }
             }).then(function(response) {
+                java.lang.System.out.println(response.text);
+                
                 callback.resolve({
                     authorName: "MrBoomDev",
                     text: response.text
@@ -134,23 +136,14 @@ function useDantotsuToken(callback) {
     }
     
     Awery.fetch({
-        url: url + "/authenticate",
+        url: DANTOTSU_ENDPOINT + "/authenticate",
         method: "post",
-        
-        body: JSON.stringify({
-            "token": anilistToken
-        }),
-        
-        headers: {
-            "app_auth": DANTOTSU_SECRET
-        }
+        form: { "token": anilistToken },
+        headers: { "appauth": DANTOTSU_SECRET }
     }).then(function(response) {
         if(response.statusCode == 200) {
-            
             Awery.setSaved("dantotsuSavedResponse", response.text);
             Awery.setSaved("dantotsuTokenDate", java.lang.System.currentTimeMillis());
-        
-            Awery.toast(response.text);
         
             callback.resolve(JSON.parse(response.text));
         } else {
