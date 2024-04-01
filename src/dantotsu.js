@@ -9,9 +9,9 @@ if(this.Awery != null) {
         version: "1.0.0",
         author: "MrBoomDev",
         features: [
-            "media_comments_read",
-            "media_comments_write",
+            "media_comments",
             "media_comments_sort",
+            "media_comments_vote",
             "account_login"
         ]
     });
@@ -102,12 +102,23 @@ function aweryReadMediaComments(request, callback) {
                     "Authorization": result.authToken
                 }
             }).then(function(response) {
-                java.lang.System.out.println(response.text);
+                const json = JSON.parse(response.text).comments;
+                const items = [];
                 
-                callback.resolve({
-                    authorName: "MrBoomDev",
-                    text: response.text
-                });
+                for(var i = 0; i < json.length; i++) {
+                    var item = json[i];
+                    
+                    items.push({
+                        authorName: item.username,
+                        authorAvatar: item["profile_picture_url"],
+                        text: item.content,
+                        votes: item["total_votes"],
+                        likes: -1,
+                        dislikes: -1
+                    });
+                }
+                
+                callback.resolve({ items: items });
             }).catchException(function(e) {
                 callback.reject({
                     id: "http_error",
@@ -146,8 +157,11 @@ function useDantotsuToken(callback) {
             Awery.setSaved("dantotsuTokenDate", java.lang.System.currentTimeMillis());
         
             callback.resolve(JSON.parse(response.text));
+        } else if(response.statusCode == 429) {
+            callback.reject({ id: "rate_limited" });
         } else {
             Awery.toast("Fail. " + response.text);
+            callback.reject({ id: "other" });
         }
     }).catchException(function(e) {
         callback.reject({
