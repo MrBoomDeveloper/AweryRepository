@@ -5,7 +5,7 @@ const DANTOTSU_TOKEN_CACHE_DURATION = 6 * 24 * 60 * 60 * 1000; // 6 days
 Awery.setManifest({
     title: "Dantotsu Comments",
     id: "com.mrboomdev.awery.extension.dantotsu",
-    version: "1.0.0",
+    version: "1.0.1",
     author: "MrBoomDev",
     features: [
         "media_comments",
@@ -137,8 +137,7 @@ function createComment(item) {
         canComment: true,
         comments: item["reply_count"],
         date: item.timestamp,
-        id: item["comment_id"],
-        __TYPE__: 1
+        id: item["comment_id"]
     }
 }
 
@@ -240,7 +239,18 @@ function aweryReadMediaComments(request, callback) {
                 const items = [];
                 
                 if(json.comments == null) {
-                    callback.reject({ id: "nothing_found" });
+                    var comment = {
+                        canComment: true,
+                        mediaId: id,
+                        id: parentId,
+                        userId: result["user_id"]
+                    };
+                    
+                    if(request.parentComment != null) {
+                        comment = Object.assign(comment, request.parentComment);
+                    }
+                    
+                    callback.resolve(comment);
                     return;
                 }
                 
@@ -257,8 +267,7 @@ function aweryReadMediaComments(request, callback) {
                     items: items,
                     mediaId: id,
                     id: parentId,
-                    userId: result["user_id"],
-                    __TYPE__: 2
+                    userId: result["user_id"]
                 }));
             }).catchException(function(e) {
                 callback.reject({
@@ -276,13 +285,14 @@ function aweryReadMediaComments(request, callback) {
 
 function useDantotsuToken(callback) {
     const anilistToken = Awery.getSaved("anilistToken");
+    const dantotsuTokenUntil = Awery.getSaved("dantotsuTokenUntil");
     
     if(anilistToken == null) {
         callback.reject({ id: "account_required" });
         return;
     }
 
-    if(Awery.getSaved(Number("dantotsuTokenUntil")) < java.lang.System.currentTimeMillis() + DANTOTSU_TOKEN_CACHE_DURATION) {
+    if(dantotsuTokenUntil != null && Number(dantotsuTokenUntil) < java.lang.System.currentTimeMillis() + DANTOTSU_TOKEN_CACHE_DURATION) {
         callback.resolve(JSON.parse(Awery.getSaved("dantotsuSavedResponse")));
         return;
     }
