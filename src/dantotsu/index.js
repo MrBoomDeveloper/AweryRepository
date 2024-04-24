@@ -53,7 +53,6 @@ function aweryIsLoggedIn() {
 function aweryLogOut(callback) {
     Awery.setSaved("anilistToken", null);
     Awery.setSaved("anilistExpiresIn", null);
-    
     callback.resolve(true);
 }
 
@@ -205,10 +204,13 @@ function aweryReadMediaComments(request, callback) {
             var url = DANTOTSU_ENDPOINT + "/comments/";
             var parentId;
             
-            if(request.parentComment == null) {
+            if(request.parentComment != null && request.parentComment.id != null) {
+                parentId = request.parentComment.id;
+                url += "parent/" + parentId + "/" + request.page;
+            } else {
                 url += id + "/" + request.page + "/?";
                 
-                const args = [];
+                var args = [];
     
                 if(request.episode != null) args.push(["tag", request.episode.number]);
                 if(request.sort != null) args.push(["sort", request.sort.id]);
@@ -217,9 +219,6 @@ function aweryReadMediaComments(request, callback) {
                     var arg = args[i];
                     url += arg[0] + "=" + arg[1] + "&";
                 }
-            } else {
-                parentId = request.parentComment.id;
-                url += "parent/" + parentId + "/" + request.page;
             }
             
             Awery.fetch({
