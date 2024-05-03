@@ -47,7 +47,10 @@ function aweryLoginScreen(callback) {
 }
 
 function aweryIsLoggedIn() {
-    return Awery.getSaved("anilistToken") != null;
+    //TODO: Check if the token did expire
+    
+    var anilistToken = Awery.getSaved("anilistToken");
+    return anilistToken != null;
 }
 
 function aweryLogOut(callback) {
