@@ -108,13 +108,25 @@ function aweryEditComment(request, callback) {
     });
 }
 
-function aweryVoteComment(request, callback) {
+function aweryVoteComment(comment, callback) {
     useDantotsuToken({
         resolve(result) {
             Awery.fetch({
-                url: DANTOTSU_ENDPOINT
+                url: `${DANTOTSU_ENDPOINT}/comments/vote/${comment.id}/${comment.voteState}`,
+                method: "post",
+                headers: {
+                    "appauth": DANTOTSU_SECRET,
+                    "Authorization": result.authToken
+                }
             }).then(function(response) {
+                if(response.statusCode != 200) {
+                    callback.reject({
+                        id: "other",
+                        extra: `Ask MrBoomDev to fix it! ${response.text}`
+                    });
+                }
                 
+                callback.resolve(comment);
             }).catchException(function(e) {
                 callback.reject({
                     id: "http_error",
@@ -130,16 +142,19 @@ function aweryVoteComment(request, callback) {
 }
 
 function createComment(item) {
+    var voteState = item["user_vote_type"];
+    
     return {
         authorName: item.username,
         authorAvatar: item["profile_picture_url"],
         text: item.content,
-        likes: item.upvotes,
-        dislikes: item.downvotes,
+        likes: item.upvotes - (voteState == 1 ? 1 : 0),
+        dislikes: item.downvotes - (voteState == -1 ? 1 : 0),
         canComment: true,
         comments: item["reply_count"],
         date: item.timestamp,
-        id: item["comment_id"]
+        id: item["comment_id"],
+        voteState: voteState
     }
 }
 
@@ -269,7 +284,8 @@ function aweryReadMediaComments(request, callback) {
                     items: items,
                     mediaId: id,
                     id: parentId,
-                    userId: result["user_id"]
+                    userId: result["user_id"],
+                    hasNextPage: json.totalPages > request.page
                 }));
             }).catchException(function(e) {
                 callback.reject({
