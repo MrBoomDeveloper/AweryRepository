@@ -5,8 +5,9 @@ const DANTOTSU_TOKEN_CACHE_DURATION = 6 * 24 * 60 * 60 * 1000; // 6 days
 Awery.setManifest({
     title: "Dantotsu Comments",
     id: "com.mrboomdev.awery.extension.dantotsu",
-    version: "1.0.1",
+    version: "1.0.3",
     author: "MrBoomDev",
+    
     features: [
         "media_comments",
         "media_comments_sort",
@@ -187,6 +188,16 @@ function aweryPostMediaComment(parentComment, newComment, callback) {
             }).then(function(response) {
                 const res = JSON.parse(response.text);
                 
+                if(response.statusCode == 500) {
+                    if(res.message == "not_english") {
+                        callback.reject({ id: "message", extra: "You can't use non-english!" });
+                    } else {
+                        callback.reject({ id: "other", extra: res })
+                    }
+                    
+                    return;
+                }
+                
                 const comment = createComment(res);
                 comment.authorName = result.user.username;
                 comment.authorAvatar = result.user["profile_picture_url"];
@@ -248,7 +259,7 @@ function aweryReadMediaComments(request, callback) {
                 }
             }).then(function(response) {
                 if(response.text == "Forbidden") {
-                    callback.reject({ id: "other", extra: "Your token has expired. Tell developer that it did happened!" });
+                    callback.reject({ id: "other", extra: "Your token has expired. Tell MrBoomDev that it did happened!" });
                     return;
                 }
                 
@@ -309,10 +320,14 @@ function useDantotsuToken(callback) {
         callback.reject({ id: "account_required" });
         return;
     }
-
-    if(dantotsuTokenUntil != null && Number(dantotsuTokenUntil) < java.lang.System.currentTimeMillis() + DANTOTSU_TOKEN_CACHE_DURATION) {
-        callback.resolve(JSON.parse(Awery.getSaved("dantotsuSavedResponse")));
-        return;
+    
+    if(dantotsuTokenUntil != null) {
+        var compared = Awery.compareNumbers(dantotsuTokenUntil, Awery.currentTime());
+        
+        if(compared > 0) {
+            callback.resolve(JSON.parse(Awery.getSaved("dantotsuSavedResponse")));
+            return;
+        }
     }
     
     Awery.fetch({

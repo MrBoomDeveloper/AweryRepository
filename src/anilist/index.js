@@ -22,7 +22,7 @@ const MEDIA_FIELDS = `
 Awery.setManifest({
     title: "Anilist",
     id: "com.mrboomdev.awery.extension.anilist",
-    version: "1.0.0",
+    version: "1.0.1",
     author: "MrBoomDev",
     features: [
         "search_tags",
@@ -43,6 +43,10 @@ function formatDate(millis) {
 }
 
 function aweryTrackMedia(media, options, callback) {
+    if(options != null && options.currentLists[0] == null) {
+        //callback.rej
+    }
+    
     if(!aweryIsLoggedIn()) {
         callback.reject({id: "account_required" });
         return;
@@ -79,8 +83,8 @@ function aweryTrackMedia(media, options, callback) {
                 SaveMediaListEntry(
                     mediaId: ${id},
                     status: ${options.currentLists[0]},
-                    scoreRaw: ${options.score * 10},
-                    progress: ${Math.round(options.progress)},
+                    scoreRaw: ${options.score != null ? Math.round(options.score * 10) : 0},
+                    progress: ${options.progress != null ? Math.round(options.progress) : 0},
                     private: ${options.isPrivate},
                     startedAt: ${options.startDate != 0 ? formatDate(options.startDate) : "null"},
                     completedAt: ${options.endDate != 0 ? formatDate(options.endDate) : "null"}
@@ -96,6 +100,10 @@ function aweryTrackMedia(media, options, callback) {
         }
         
         var trackData = json.data.SaveMediaListEntry || json.data.Media.mediaListEntry;
+        
+        if(trackData == null) {
+            trackData = {}
+        }
             
         callback.resolve({
             currentLists: [ trackData.status ],
@@ -131,7 +139,7 @@ function aweryTrackMedia(media, options, callback) {
 }
 
 function parseDate(input) {
-    if(input.year == null && input.month == null && input.day == null) {
+    if(input == null || (input.year == null && input.month == null && input.day == null)) {
         return null;
     }
     
