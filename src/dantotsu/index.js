@@ -10,10 +10,24 @@ Awery.setManifest({
     
     features: [
         "media_comments",
-        "media_comments_sort",
-        "account_login"
+        //"media_comments_sort",
+        "media_comments_per_episode",
+        "account_login",
+        "changelog"
     ]
 });
+
+function aweryChangelog(callback) {
+    callback.resolve(`
+        v1.0.3
+        - Deleted your own or other's comments if you're an moderator
+        - Any your comment can now be edited
+        
+        Big thanks to Rebel, the creator of Dantotsu,
+        for providing me access to his comments server!
+        If not him, there would be no comments at all!
+    `);
+}
 
 function aweryMediaCommentsSortModes() {
     return [
@@ -67,13 +81,24 @@ function aweryMyUser(callback) {
     });
 }
 
-function aweryDeleteComment(request, callback) {
+function aweryDeleteComment(comment, callback) {
     useDantotsuToken({
         resolve(result) {
             Awery.fetch({
-                url: DANTOTSU_ENDPOINT
-            }).then(function(response) {
+                url: `${DANTOTSU_ENDPOINT}/comments/${comment.id}`,
+                method: "delete",
                 
+                headers: {
+                    "appauth": DANTOTSU_SECRET,
+                    "Authorization": result.authToken
+                }
+            }).then(function(response) {
+                if(response.statusCode != 200) {
+                    callback.reject({ id: "other", extra: response.text });
+                    return;
+                }
+                
+                callback.resolve(true);
             }).catchException(function(e) {
                 callback.reject({
                     id: "http_error",
@@ -88,13 +113,28 @@ function aweryDeleteComment(request, callback) {
     });
 }
 
-function aweryEditComment(request, callback) {
+function aweryEditComment(oldComment, newComment, callback) {
     useDantotsuToken({
         resolve(result) {
             Awery.fetch({
-                url: DANTOTSU_ENDPOINT
-            }).then(function(response) {
+                url: `${DANTOTSU_ENDPOINT}/comments/${oldComment.id}`,
+                method: "put",
                 
+                form: {
+                    content: newComment.text
+                },
+                
+                headers: {
+                    "appauth": DANTOTSU_SECRET,
+                    "Authorization": result.authToken
+                }
+            }).then(function(response) {
+                if(response.statusCode != 200) {
+                    callback.reject({ id: "other", extra: response.text });
+                    return;
+                }
+                
+                callback.resolve(Object.assign(result, oldComment, newComment));
             }).catchException(function(e) {
                 callback.reject({
                     id: "http_error",
@@ -286,12 +326,14 @@ function aweryReadMediaComments(request, callback) {
                     var item = json.comments[i];
                     var comment = createComment(item);
                     comment.mediaId = id;
+                    comment.isEditable = (result.user["user_id"] == item["user_id"]);
+                    comment.isDeletable = comment.isEditable || result.user["is_admin"] || result.user["is_mod"];
                     items.push(comment);
                 }
                 
                 callback.resolve(Object.assign(request.parentComment == null ? {}
                 : JSON.parse(JSON.stringify(request.parentComment)), {
-                    canComment: true, 
+                    canComment: result["is_banned"] == null, 
                     items: items,
                     mediaId: id,
                     id: parentId,
