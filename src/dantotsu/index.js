@@ -199,21 +199,21 @@ function createComment(item) {
     }
 }
 
-function aweryPostMediaComment(parentComment, newComment, callback) {
+function aweryPostMediaComment(request, callback) {
     useDantotsuToken({
         resolve(result) {
             const form = {
                 "user_id": result.user["user_id"],
-                "media_id": parentComment.mediaId,
-                "content": newComment.text
+                "media_id": request.parentComment.mediaId,
+                "content": request.comment.text
             };
             
-            /*if(request.episode != null) {
+            if(request.episode != null) {
                 form.tag = request.episode.number;
-            }*/
+            }
             
-            if(parentComment.id != null) {
-                form["parent_comment_id"] = parentComment.id;
+            if(request.parentComment.id != null) {
+                form["parent_comment_id"] = request.parentComment.id;
             }
             
             Awery.fetch({

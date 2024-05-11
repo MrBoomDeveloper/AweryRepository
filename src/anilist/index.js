@@ -44,7 +44,8 @@ function formatDate(millis) {
 
 function aweryTrackMedia(media, options, callback) {
     if(options != null && options.currentLists[0] == null) {
-        //callback.rej
+        callback.reject({ id: "message", extra: "You have to select at least one list!" });
+        return;
     }
     
     if(!aweryIsLoggedIn()) {
