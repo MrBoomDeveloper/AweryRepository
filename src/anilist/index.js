@@ -22,16 +22,76 @@ const MEDIA_FIELDS = `
 Awery.setManifest({
     title: "Anilist",
     id: "com.mrboomdev.awery.extension.anilist",
-    version: "1.0.1",
+    version: "1.0.2",
     author: "MrBoomDev",
     features: [
         "search_tags",
         "search_media",
         
         "account_login",
-        "account_track"
+        "account_track",
+        
+        "changelog"
     ]
 });
+
+function aweryChangelog(callback) {
+    callback.resolve(`
+        v1.0.2
+        - Search filters
+    `);
+}
+
+function aweryFilters(callback) {
+    callback.resolve([
+        { key: Awery.FILTER_QUERY, title: "Query", type: "string" },
+        { key: Awery.FILTER_PAGE, title: "Page", type: "integer" },
+        //{ key: Awery.FILTER_START_DATE, title: "Start date", type: "date" },
+        //{ key: Awery.FILTER_END_DATE, title: "End date", type: "date" },
+        
+        {
+            key: "sort_mode", title: "Sort mode", type: "select", value: "POPULARITY_DESC", items: [
+                { key: "START_DATE", title: "Start date ascending" },
+                { key: "START_DATE_DESC", title: "Start date descending" },
+                { key: "SCORE", title: "Score ascending" },
+                { key: "SCORE_DESC", title: "Score descending" },
+                { key: "POPULARITY", title: "Popularity ascending" },
+                { key: "POPULARITY_DESC", title: "Popularity descending" },
+                { key: "TRENDING", title: "Trending ascending" },
+                { key: "TRENDING_DESC", title: "Trending descending" },
+                { key: "SEARCH_MATCH", title: "Search match" },
+                { key: "UPDATED_AT", title: "Updated at ascending" },
+                { key: "UPDATED_AT_DESC", title: "Updated at descending" },
+                { key: "FAVOURITES", title: "Favourites ascending" },
+                { key: "FAVOURITES_DESC", title: "Favourites descending" }
+            ]
+        },
+        
+        { key: "format", title: "Format", type: "select", items: [
+            { key: "TV", title: "TV" },
+            { key: "MOVIE", title: "Movie" },
+            { key: "SPECIAL", title: "Special" },
+            { key: "OVA", title: "Ova" },
+            { key: "ONA", title: "Ona" },
+            { key: "MANGA", title: "Manga" },
+            { key: "NOVEL", title: "Novel" },
+            { key: "MUSIC", title: "Music" }
+        ] },
+        
+        { key: "satus", title: "Status", type: "select", items: [
+            { key: "FINISHED", title: "Finished" },
+            { key: "RELEASING", title: "Releasing" },
+            { key: "NOT_YET_RELEASED", title: "Not yet released" },
+            { key: "CANCELLED", title: "Cancelled" },
+            { title: "HIATUS", title: "Hiatus" }
+        ] },
+        
+        { key: "type", title: "Type", type: "select", items: [
+            { key: "ANIME", title: "Anime" },
+            { key: "MANGA", title: "Manga" }
+        ] }
+    ]);
+}
 
 function formatDate(millis) {
     if(millis == null || millis <= 0) {
@@ -40,6 +100,14 @@ function formatDate(millis) {
     
     var date = new Date(millis);
     return `{ year: ${date.getYear()}, month: ${date.getMonth()}, day: ${date.getDate()} }`;
+}
+
+function aweryModifyEpisodes(videos) {
+    //TODO
+}
+
+function aweryModifyVideo(video) {
+    //TODO
 }
 
 function aweryTrackMedia(media, options, callback) {
@@ -160,6 +228,7 @@ function mapJsonMedia(jsonItem) {
     
     return {
         id: jsonItem.id,
+        url: `https://anilist.co/anime/${jsonItem.id}`,
         banner: jsonItem.bannerImage,
         description: jsonItem.description,
         format: jsonItem.format,
@@ -195,31 +264,49 @@ function mapJsonMedia(jsonItem) {
     }
 }
 
-function awerySearchMedia(filters, callback) {
-    var sort = "SEARCH_MATCH";
-    var id = Number.NaN;
-    var page = 0;
-    var query;
-    
+function getFilter(filters, key, defaultValue) {
     for(let i = 0; i < filters.length; i++) {
         var filter = filters[i];
         
-        if(filter.id == "query") {
-            query = filter.value;
-            id = Number.parseInt(query);
-        }
-        
-        if(filter.id == "page") {
-            page = filter.value;
+        if(filter.key == key) {
+            return filter.value;
         }
     }
     
-    //Why? Because anilist starts ids from 1, but awery starts from 0.
-    page++;
+    return defaultValue;
+}
+
+function awerySearchMedia(filters, callback) {
+    var sort = getFilter(filters, "sort_mode");
+    var query = getFilter(filters, Awery.FILTER_QUERY);
+    var page = getFilter(filters, Awery.FILTER_PAGE, 0) + 1;
+    var format = getFilter(filters, "format");
+    var type = getFilter(filters, "type");
+    var status = getFilter(filters, "status");
+    
+    var id = query != undefined 
+        ? Number.parseInt(query) 
+        : Number.NaN;
     
     var params = "isAdult: false";
-    params += ", type: ANIME";
-    params += ", sort: " + sort;
+    
+    if(sort != null) {
+        params += ", sort: " + sort;
+    } else if(query != null) {
+        params += ", sort: SEARCH_MATCH";
+    }
+    
+    if(type != null) {
+        params += ", type: " + type;
+    }
+    
+    if(format != null) {
+        params += ", format: " + format;
+    }
+    
+    if(status != null) {
+        params += ", status: " + status;
+    }
     
     if(query != null) {
         params += ', search: \\"' + query + '\\"';

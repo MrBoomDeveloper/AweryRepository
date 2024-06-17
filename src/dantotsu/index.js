@@ -1,4 +1,4 @@
-const DANTOTSU_ENDPOINT = "https://1224665.xyz:443";
+const DANTOTSU_ENDPOINT = "https://api.dantotsu.app";
 const DANTOTSU_SECRET = "2QF^h%W%DrKdZwz8t&5S77S6GNRQm&";
 const DANTOTSU_TOKEN_CACHE_DURATION = 6 * 24 * 60 * 60 * 1000; // 6 days
 
