@@ -5,15 +5,16 @@ const DANTOTSU_TOKEN_CACHE_DURATION = 6 * 24 * 60 * 60 * 1000; // 6 days
 Awery.setManifest({
     title: "Dantotsu Comments",
     id: "com.mrboomdev.awery.extension.dantotsu",
+    adultContent: "NONE",
     version: "1.0.3",
     author: "MrBoomDev",
     
     features: [
-        "media_comments",
+        "MEDIA_COMMENTS",
         //"media_comments_sort",
-        "media_comments_per_episode",
-        "account_login",
-        "changelog"
+        "MEDIA_COMMENTS_PER_PAGE",
+        "ACCOUNT_LOGIN",
+        "CHANGELOG"
     ]
 });
 
@@ -56,7 +57,7 @@ function aweryLogin(request, callback) {
 
 function aweryLoginScreen(callback) {
     callback.resolve({
-        action: "open_browser",
+        action: "OPEN_BROWSER",
         url: "https://anilist.co/api/v2/oauth/authorize?client_id=17466&response_type=token"
     });
 }
@@ -86,7 +87,7 @@ function aweryDeleteComment(comment, callback) {
         resolve(result) {
             Awery.fetch({
                 url: `${DANTOTSU_ENDPOINT}/comments/${comment.id}`,
-                method: "delete",
+                method: "DELETE",
                 
                 headers: {
                     "appauth": DANTOTSU_SECRET,
@@ -94,14 +95,14 @@ function aweryDeleteComment(comment, callback) {
                 }
             }).then(function(response) {
                 if(response.statusCode != 200) {
-                    callback.reject({ id: "other", extra: response.text });
+                    callback.reject({ id: "OTHER", extra: response.text });
                     return;
                 }
                 
                 callback.resolve(true);
             }).catchException(function(e) {
                 callback.reject({
-                    id: "http_error",
+                    id: "HTTP_ERROR",
                     extra: e
                 });
             });
@@ -118,7 +119,7 @@ function aweryEditComment(oldComment, newComment, callback) {
         resolve(result) {
             Awery.fetch({
                 url: `${DANTOTSU_ENDPOINT}/comments/${oldComment.id}`,
-                method: "put",
+                method: "PUT",
                 
                 form: {
                     content: newComment.text
@@ -130,14 +131,14 @@ function aweryEditComment(oldComment, newComment, callback) {
                 }
             }).then(function(response) {
                 if(response.statusCode != 200) {
-                    callback.reject({ id: "other", extra: response.text });
+                    callback.reject({ id: "OTHER", extra: response.text });
                     return;
                 }
                 
                 callback.resolve(Object.assign(result, oldComment, newComment));
             }).catchException(function(e) {
                 callback.reject({
-                    id: "http_error",
+                    id: "HTTP_ERROR",
                     extra: e
                 });
             });
@@ -154,7 +155,7 @@ function aweryVoteComment(comment, callback) {
         resolve(result) {
             Awery.fetch({
                 url: `${DANTOTSU_ENDPOINT}/comments/vote/${comment.id}/${comment.voteState}`,
-                method: "post",
+                method: "POST",
                 headers: {
                     "appauth": DANTOTSU_SECRET,
                     "Authorization": result.authToken
@@ -162,7 +163,7 @@ function aweryVoteComment(comment, callback) {
             }).then(function(response) {
                 if(response.statusCode != 200) {
                     callback.reject({
-                        id: "other",
+                        id: "OTHER",
                         extra: `Ask MrBoomDev to fix it! ${response.text}`
                     });
                 }
@@ -170,7 +171,7 @@ function aweryVoteComment(comment, callback) {
                 callback.resolve(comment);
             }).catchException(function(e) {
                 callback.reject({
-                    id: "http_error",
+                    id: "HTTP_ERROR",
                     extra: e
                 });
             });
@@ -218,7 +219,7 @@ function aweryPostMediaComment(request, callback) {
             
             Awery.fetch({
                 url: DANTOTSU_ENDPOINT + "/comments",
-                method: "post",
+                method: "POST",
                 form: form,
                 
                 headers: {
@@ -230,9 +231,9 @@ function aweryPostMediaComment(request, callback) {
                 
                 if(response.statusCode == 500) {
                     if(res.message == "not_english") {
-                        callback.reject({ id: "message", extra: "You can't use non-english!" });
+                        callback.reject({ id: "MESSAGE", extra: "You can't use non-english!" });
                     } else {
-                        callback.reject({ id: "other", extra: res })
+                        callback.reject({ id: "OTHER", extra: res })
                     }
                     
                     return;
@@ -245,7 +246,7 @@ function aweryPostMediaComment(request, callback) {
                 callback.resolve(comment);
             }).catchException(function(e) {
                 callback.reject({
-                    id: "http_error",
+                    id: "HTTP_ERROR",
                     extra: e
                 })
             });
@@ -261,7 +262,7 @@ function aweryReadMediaComments(request, callback) {
     const id = request.media.getId("anilist");
     
     if(id == null) {
-        callback.reject({id: "nothing_found"});
+        callback.reject({id: "NOTHING_FOUND"});
         return;
     }
     
@@ -299,7 +300,12 @@ function aweryReadMediaComments(request, callback) {
                 }
             }).then(function(response) {
                 if(response.text == "Forbidden") {
-                    callback.reject({ id: "other", extra: "Your token has expired. Tell MrBoomDev that it did happened!" });
+                    callback.reject({ id: "OTHER", extra: "Your token has expired. Tell MrBoomDev that it did happened!" });
+                    return;
+                }
+                
+                if(response.statusCode == 429) {
+                    callback.reject({ id: "RATE_LIMITED" });
                     return;
                 }
                 
@@ -342,7 +348,7 @@ function aweryReadMediaComments(request, callback) {
                 }));
             }).catchException(function(e) {
                 callback.reject({
-                    id: "http_error",
+                    id: "HTTP_ERROR",
                     extra: e
                 });
             })
@@ -359,7 +365,7 @@ function useDantotsuToken(callback) {
     const dantotsuTokenUntil = Awery.getSaved("dantotsuTokenUntil");
     
     if(anilistToken == null) {
-        callback.reject({ id: "account_required" });
+        callback.reject({ id: "ACCOUNT_REQUIRED" });
         return;
     }
     
@@ -374,7 +380,7 @@ function useDantotsuToken(callback) {
     
     Awery.fetch({
         url: DANTOTSU_ENDPOINT + "/authenticate",
-        method: "post",
+        method: "POST",
         form: { "token": anilistToken },
         headers: { "appauth": DANTOTSU_SECRET }
     }).then(function(response) {
@@ -384,14 +390,14 @@ function useDantotsuToken(callback) {
         
             callback.resolve(JSON.parse(response.text));
         } else if(response.statusCode == 429) {
-            callback.reject({ id: "rate_limited" });
+            callback.reject({ id: "RATE_LIMITED" });
         } else {
             Awery.toast("Fail. " + response.text);
-            callback.reject({ id: "other" });
+            callback.reject({ id: "OTHER" });
         }
     }).catchException(function(e) {
         callback.reject({
-            id: "http_error",
+            id: "HTTP_ERROR",
             extra: e
         });
     });

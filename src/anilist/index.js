@@ -1,5 +1,6 @@
-const ANILIST_GRAPHQL = "https://graphql.anilist.co/";
-const ANILIST_API = "https://anilist.co/api/v2/"
+const ANILIST_GRAPHQL = "https://graphql.anilist.co";
+const ANILIST_API = "https://anilist.co/api/v2"
+const VERSION = "1.0.3";
 
 const TRACKING_FIELDS = `
     status progress
@@ -11,10 +12,10 @@ const TRACKING_FIELDS = `
 `;
 
 const MEDIA_FIELDS = `
-    id idMal format duration countryOfOrigin
+    id idMal format duration countryOfOrigin type format
     status episodes averageScore description 
     title { romaji(stylised: false) english(stylised: false) native(stylised: false) }
-    genres tags { name description }
+    genres tags { name description isMediaSpoiler }
     bannerImage coverImage { extraLarge large medium }
     startDate { year month day }
 `;
@@ -22,35 +23,40 @@ const MEDIA_FIELDS = `
 Awery.setManifest({
     title: "Anilist",
     id: "com.mrboomdev.awery.extension.anilist",
-    version: "1.0.2",
+    adultContent: "HIDDEN",
+    version: VERSION,
     author: "MrBoomDev",
     features: [
-        "search_tags",
-        "search_media",
+        "SEARCH_TAGS",
+        "SEARCH_MEDIA",
         
-        "account_login",
-        "account_track",
+        "ACCOUNT_LOGIN",
+        "ACCOUNT_TRACK",
         
-        "changelog"
+        "CHANGELOG",
+        "SETTINGS"
     ]
 });
 
 function aweryChangelog(callback) {
     callback.resolve(`
-        v1.0.2
+        v.1.0.3
+        - New filters
+        - Anilist account settings (W.I.P)
+    
+        v.1.0.2
         - Search filters
     `);
 }
 
 function aweryFilters(callback) {
     callback.resolve([
-        { key: Awery.FILTER_QUERY, title: "Query", type: "string" },
-        { key: Awery.FILTER_PAGE, title: "Page", type: "integer" },
         //{ key: Awery.FILTER_START_DATE, title: "Start date", type: "date" },
         //{ key: Awery.FILTER_END_DATE, title: "End date", type: "date" },
         
         {
-            key: "sort_mode", title: "Sort mode", type: "select", value: "POPULARITY_DESC", items: [
+            key: "sort_mode", type: "SELECT",
+            title: "Sort mode", description: "${VALUE}", items: [
                 { key: "START_DATE", title: "Start date ascending" },
                 { key: "START_DATE_DESC", title: "Start date descending" },
                 { key: "SCORE", title: "Score ascending" },
@@ -65,31 +71,34 @@ function aweryFilters(callback) {
                 { key: "FAVOURITES", title: "Favourites ascending" },
                 { key: "FAVOURITES_DESC", title: "Favourites descending" }
             ]
-        },
-        
-        { key: "format", title: "Format", type: "select", items: [
-            { key: "TV", title: "TV" },
-            { key: "MOVIE", title: "Movie" },
-            { key: "SPECIAL", title: "Special" },
-            { key: "OVA", title: "Ova" },
-            { key: "ONA", title: "Ona" },
-            { key: "MANGA", title: "Manga" },
-            { key: "NOVEL", title: "Novel" },
-            { key: "MUSIC", title: "Music" }
-        ] },
-        
-        { key: "satus", title: "Status", type: "select", items: [
-            { key: "FINISHED", title: "Finished" },
-            { key: "RELEASING", title: "Releasing" },
-            { key: "NOT_YET_RELEASED", title: "Not yet released" },
-            { key: "CANCELLED", title: "Cancelled" },
-            { title: "HIATUS", title: "Hiatus" }
-        ] },
-        
-        { key: "type", title: "Type", type: "select", items: [
-            { key: "ANIME", title: "Anime" },
-            { key: "MANGA", title: "Manga" }
-        ] }
+        }, { 
+            key: "format", type: "SELECT", 
+            title: "Format", description: "${VALUE}", items: [
+                { key: "TV", title: "TV" },
+                { key: "MOVIE", title: "Movie" },
+                { key: "SPECIAL", title: "Special" },
+                { key: "OVA", title: "Ova" },
+                { key: "ONA", title: "Ona" },
+                { key: "MANGA", title: "Manga" },
+                { key: "NOVEL", title: "Novel" },
+                { key: "MUSIC", title: "Music" }
+            ] 
+        }, { 
+            key: "status", type: "SELECT", 
+            title: "Status", description: "${VALUE}", items: [
+                { key: "FINISHED", title: "Finished" },
+                { key: "RELEASING", title: "Releasing" },
+                { key: "NOT_YET_RELEASED", title: "Not yet released" },
+                { key: "CANCELLED", title: "Cancelled" },
+                { key: "HIATUS", title: "Hiatus" }
+            ]
+        }, { 
+            key: "type", type: "SELECT", 
+            title: "Type", description: "${VALUE}", items: [
+                { key: "ANIME", title: "Anime" },
+                { key: "MANGA", title: "Manga" }
+            ]
+        }
     ]);
 }
 
@@ -102,22 +111,22 @@ function formatDate(millis) {
     return `{ year: ${date.getYear()}, month: ${date.getMonth()}, day: ${date.getDate()} }`;
 }
 
-function aweryModifyEpisodes(videos) {
+function aweryModifyEpisodes(episodes) {
     //TODO
 }
 
-function aweryModifyVideo(video) {
+function aweryModifyVideos(videos) {
     //TODO
 }
 
 function aweryTrackMedia(media, options, callback) {
     if(options != null && options.currentLists[0] == null) {
-        callback.reject({ id: "message", extra: "You have to select at least one list!" });
+        callback.reject({ id: "MESSAGE", extra: "You have to select at least one list!" });
         return;
     }
     
     if(!aweryIsLoggedIn()) {
-        callback.reject({id: "account_required" });
+        callback.reject({ id: "ACCOUNT_REQUIRED" });
         return;
     }
     
@@ -125,7 +134,7 @@ function aweryTrackMedia(media, options, callback) {
     var token = Awery.getSaved("anilistToken");
     
     if(id == null) {
-        callback.reject({ id: "nothing_found" });
+        callback.reject({ id: "NOTHING_FOUND" });
         return;
     }
     
@@ -135,7 +144,7 @@ function aweryTrackMedia(media, options, callback) {
         
     Awery.fetch({
         url: ANILIST_GRAPHQL,
-        contentType: "json",
+        contentType: "JSON",
         
         headers: {
             "Accept": "application/json",
@@ -164,7 +173,7 @@ function aweryTrackMedia(media, options, callback) {
         var json = JSON.parse(res.text);
         
         if(json.errors != null) {
-            callback.reject({id: "other", extra: res.text })
+            callback.reject({ id: "OTHER", extra: res.text })
             return;
         }
         
@@ -203,7 +212,7 @@ function aweryTrackMedia(media, options, callback) {
             ]
         });
     }).catchException(function(e) {
-        callback.reject("http_error", e);
+        callback.reject({ id: "HTTP_ERROR", extra: e });
     });
 }
 
@@ -213,6 +222,22 @@ function parseDate(input) {
     }
     
     return new Date(input.year, input.month, input.day).toJSON();
+}
+
+function mapJsonTags(jsonTags) {
+    var tags = [];
+    
+    for(var i = 0; i < jsonTags.length; i++) {
+        var tag = jsonTags[i];
+        
+        tags.push({
+            name: tag.name,
+            description: tag.description,
+            isSpoiler: tag.isMediaSpoiler
+        });
+    }
+    
+    return tags;
 }
 
 function mapJsonMedia(jsonItem) {
@@ -236,11 +261,15 @@ function mapJsonMedia(jsonItem) {
         country: jsonItem.countryOfOrigin,
         status: status,
         episodesCount: jsonItem.episodes,
-        averageScore: jsonItem.averageScore,
-        ageRating: jsonItem.isAdult ? "R": undefined,
+        averageScore: jsonItem.averageScore != null ? (jsonItem.averageScore / 10) : null,
+        ageRating: jsonItem.isAdult ? "NSFW": undefined,
+        
+        type: (jsonItem.format == "MOVIE" ? "movie" :
+            (jsonItem.type == "ANIME" ? "tv" : "book")),
                 
-        tags: jsonItem.tags,
+        tags: mapJsonTags(jsonItem.tags),
         genres: jsonItem.genres,
+        
                 
         endDate: jsonItem.startDate != null 
             ? parseDate(jsonItem.startDate) : undefined,
@@ -284,66 +313,74 @@ function awerySearchMedia(filters, callback) {
     var type = getFilter(filters, "type");
     var status = getFilter(filters, "status");
     
+    if(query != null && query.trim().length == 0) {
+        query = null;
+    }
+    
     var id = query != undefined 
         ? Number.parseInt(query) 
         : Number.NaN;
+        
+    var params = [];
     
-    var params = "isAdult: false";
+    if(Awery.getAdultMode() == "ONLY") params.push("isAdult: true");
+    else if(Awery.getAdultMode() == "SAFE") params.push("isAdult: false");
     
     if(sort != null) {
-        params += ", sort: " + sort;
+        params.push(`sort: ${sort}`);
     } else if(query != null) {
-        params += ", sort: SEARCH_MATCH";
+        params.push("sort: SEARCH_MATCH");
     }
     
     if(type != null) {
-        params += ", type: " + type;
+        params.push(`type: ${type}`);
     }
     
     if(format != null) {
-        params += ", format: " + format;
+        params.push(`format: ${format}`);
     }
     
     if(status != null) {
-        params += ", status: " + status;
+        params.push(`status: ${status}`);
     }
     
     if(query != null) {
-        params += ', search: \\"' + query + '\\"';
+        params.push(`search: "${query}"`);
     }
+    
+    var query = JSON.stringify({
+        query: `{
+            Page(page: ${page}, perPage: 20) {
+                media(${params.join(", ")}) { 
+                    ${MEDIA_FIELDS}
+                }
+                
+                pageInfo {
+                    hasNextPage
+                }
+            }
+                
+            ${!Number.isNaN(id) ? `
+                Media(id: ${id}) { 
+                    ${MEDIA_FIELDS}
+                }
+            ` : ""}
+        }`
+    });
     
     Awery.fetch({
         url: ANILIST_GRAPHQL,
-        contentType: "json",
+        contentType: "JSON",
         
         headers: {
             "Accept": "application/json",
             "Content-Type": "application/json"
         },
         
-        body: JSON.stringify({
-            query: `{
-                Page(page: __PAGE__, perPage: 20) {
-                    media(__PARAMS__) { 
-                        ${MEDIA_FIELDS}
-                    }
-                
-                    pageInfo {
-                        hasNextPage
-                    }
-                }
-                
-                ${!Number.isNaN(id) ? `
-                    Media(id: ${id}) { 
-                        ${MEDIA_FIELDS}
-                    }
-                ` : ""}
-            }`
-        }).replace("__PAGE__", page)
-            .replace("__PARAMS__", params)
+        body: query
     }).then(function(res) {
         if(!res.text.startsWith("{")) {
-            callback.reject({ "id": "http_error" });
+            callback.reject({ id: "HTTP_ERROR", "extra": "Anilist is down :(" });
             return;
         }
         
@@ -351,7 +388,7 @@ function awerySearchMedia(filters, callback) {
         var items = [];
         
         if(json.errors != null) {
-            callback.reject({ id: "other", extra: json.errors })
+            callback.reject({ id: "OTHER", extra: `Error:\n${JSON.stringify(json.errors)}\n\nQuery:\n${query}` })
             return;
         }
         
@@ -369,7 +406,7 @@ function awerySearchMedia(filters, callback) {
             items: items
         });
     }).catchException(function(e) {
-        callback.reject({ id: "other", extra: e })
+        callback.reject({ id: "OTHER", extra: e })
     });
 }
 
@@ -399,8 +436,8 @@ function aweryLogin(request, callback) {
 
 function aweryLoginScreen(callback) {
     callback.resolve({
-        action: "open_browser",
-        url: ANILIST_API + "oauth/authorize?client_id=17466&response_type=token"
+        action: "OPEN_BROWSER",
+        url: `${ANILIST_API}/oauth/authorize?client_id=17466&response_type=token`
     });
 }
 
