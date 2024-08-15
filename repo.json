@@ -5,7 +5,7 @@
     "extensions": [
         {
             "id": "com.mrboomdev.awery.extension.dantotsu",
-            "url": "https://github.com/MrBoomDeveloper/AweryExtensions/blob/main/src/dantotsu.js",
+            "url": "https://github.com/MrBoomDeveloper/AweryRepository/blob/main/src/dantotsu/index.js",
             "title": "Dantotsu Comments",
             "version": "1.0.0",
             "nsfw": "none"
