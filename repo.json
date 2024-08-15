@@ -9,6 +9,20 @@
             "title": "Dantotsu Comments",
             "version": "1.0.0",
             "nsfw": "none"
+        },
+        {
+            "id": "com.mrboomdev.awery.extension.anilist",
+            "url": "https://github.com/MrBoomDeveloper/AweryRepository/blob/main/src/anilist/index.js",
+            "title": "Anilist",
+            "version": "1.0.3",
+            "nsfw": "none"
+        },
+        {
+            "id": "com.mrboomdev.awery.extension.shikimori",
+            "url": "https://github.com/MrBoomDeveloper/AweryRepository/blob/main/src/shikimori/index.js",
+            "title": "Shikimori",
+            "version": "1.0.0",
+            "nsfw": "none"
         }
     ]
 }
