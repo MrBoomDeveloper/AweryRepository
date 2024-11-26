@@ -1,0 +1,6 @@
+{
+  "name": "Anilist",
+  "id": "awery.ext.anilist",
+  "main": "awery.ext.anilist.AnilistSource",
+  "type": "SOURCE"
+}

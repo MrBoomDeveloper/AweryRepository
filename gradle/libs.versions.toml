@@ -1,0 +1,19 @@
+[versions]
+awery-ext = "1.0.1"
+ktor = "3.0.1"
+kotlin = "2.0.20"
+
+[libraries]
+ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+awery-ext-lib = { module = "ru.mrboomdev.awery:ext-lib", version.ref = "awery-ext" }
+awery-ext-platform = { module = "ru.mrboomdev.awery:ext-platform", version.ref = "awery-ext" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.7.1" }
+
+[bundles]
+ktor = ["ktor-core", "ktor-cio"]
+awery-ext = ["awery-ext-lib", "awery-ext-platform"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
